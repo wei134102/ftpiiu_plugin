@@ -46,7 +46,7 @@
 #define VERSION_FULL VERSION VERSION_EXTRA
 
 WUPS_PLUGIN_NAME ("ftpiiu");
-WUPS_PLUGIN_DESCRIPTION ("FTP Server based on ftpd");
+WUPS_PLUGIN_DESCRIPTION ("基于 ftpd 的 Wii U FTP 服务器");
 WUPS_PLUGIN_VERSION (VERSION_FULL);
 WUPS_PLUGIN_AUTHOR ("mtheall, Maschell");
 WUPS_PLUGIN_LICENSE ("GPL3");
@@ -84,12 +84,12 @@ MochaUtilsStatus MountWrapper (const char *mount, const char *dev, const char *m
 	if (res == MOCHA_RESULT_SUCCESS)
 	{
 		std::string mountPath = std::string (mount) + ":/";
-		debug ("Mounted %s", mountPath.c_str ());
+		debug ("已挂载 %s", mountPath.c_str ());
 	}
 	else
 	{
 		DEBUG_FUNCTION_LINE_ERR (
-		    "Failed to mount %s: %s [%d]", mount, Mocha_GetStatusStr (res), res);
+		    "挂载失败 %s: %s [%d]", mount, Mocha_GetStatusStr (res), res);
 	}
 	return res;
 }
@@ -190,7 +190,7 @@ void start_server ()
 	else
 	{
 		DEBUG_FUNCTION_LINE_ERR (
-		    "Failed to init libmocha: %s [%d]\n", Mocha_GetStatusStr (res), res);
+		    "初始化 libmocha 失败: %s [%d]\n", Mocha_GetStatusStr (res), res);
 	}
 
 	server = FtpServer::create ();
@@ -230,7 +230,7 @@ static void gFTPServerRunningChanged (ConfigItemBoolean *item, bool newValue)
 	auto res = WUPSStorageAPI::Store (FTPIIU_ENABLED_STRING, sFTPServerEnabled);
 	if (res != WUPS_STORAGE_ERROR_SUCCESS)
 	{
-		DEBUG_FUNCTION_LINE_ERR ("Failed to store gFTPServerEnabled: %s (%d)\n",
+		DEBUG_FUNCTION_LINE_ERR ("保存「启用服务器」选项失败: %s (%d)\n",
 		    WUPSStorageAPI::GetStatusStr (res).data (),
 		    res);
 	}
@@ -253,7 +253,7 @@ static void gSystemFilesAllowedChanged (ConfigItemBoolean *item, bool newValue)
 	auto res = WUPSStorageAPI::Store (SYSTEM_FILES_ALLOWED_STRING, sSystemFilesAllowed);
 	if (res != WUPS_STORAGE_ERROR_SUCCESS)
 	{
-		DEBUG_FUNCTION_LINE_ERR ("Failed to store gSystemFilesAllowed: %s (%d)\n",
+		DEBUG_FUNCTION_LINE_ERR ("保存「系统文件访问」选项失败: %s (%d)\n",
 		    WUPSStorageAPI::GetStatusStr (res).data (),
 		    res);
 	}
@@ -267,25 +267,25 @@ WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback (WUPSConfigCategoryHandle r
 	{
 		WUPSConfigCategory root = WUPSConfigCategory (rootHandle);
 		root.add (WUPSConfigItemBoolean::Create (FTPIIU_ENABLED_STRING,
-		    "Enable ftpd",
+		    "启用 FTP 服务器（ftpd）",
 		    true,
 		    sFTPServerEnabled,
 		    &gFTPServerRunningChanged));
 
 		root.add (WUPSConfigItemBoolean::Create (SYSTEM_FILES_ALLOWED_STRING,
-		    "Allow access to system files",
+		    "允许访问系统分区（危险，请谨慎）",
 		    false,
 		    sSystemFilesAllowed,
 		    &gSystemFilesAllowedChanged));
 
 		root.add (WUPSConfigItemStub::Create ("==="));
 
-		char ipSettings[50];
+		char ipSettings[96];
 		if (hostIpAddress != 0)
 		{
 			snprintf (ipSettings,
-			    50,
-			    "IP of your console is %u.%u.%u.%u  Port %i",
+			    sizeof (ipSettings),
+			    "主机 IP：%u.%u.%u.%u   端口：%i",
 			    (hostIpAddress >> 24) & 0xFF,
 			    (hostIpAddress >> 16) & 0xFF,
 			    (hostIpAddress >> 8) & 0xFF,
@@ -295,15 +295,15 @@ WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback (WUPSConfigCategoryHandle r
 		else
 		{
 			snprintf (
-			    ipSettings, sizeof (ipSettings), "The console is not connected to a network.");
+			    ipSettings, sizeof (ipSettings), "主机当前未连接到网络。");
 		}
 
 		root.add (WUPSConfigItemStub::Create (ipSettings));
-		root.add (WUPSConfigItemStub::Create ("You can connect with empty credentials"));
+		root.add (WUPSConfigItemStub::Create ("用户名与密码可留空进行连接"));
 	}
 	catch (std::exception &e)
 	{
-		OSReport ("fptiiu plugin: Exception: %s\n", e.what ());
+		OSReport ("ftpiiu 插件：异常：%s\n", e.what ());
 		return WUPSCONFIG_API_CALLBACK_RESULT_ERROR;
 	}
 
@@ -321,8 +321,8 @@ INITIALIZE_PLUGIN ()
 	if (WUPSConfigAPI_Init (configOptions, ConfigMenuOpenedCallback, ConfigMenuClosedCallback) !=
 	    WUPSCONFIG_API_RESULT_SUCCESS)
 	{
-		DEBUG_FUNCTION_LINE_ERR ("Failed to init config api");
-		OSFatal ("ftpiiu plugin: Failed to init config api");
+		DEBUG_FUNCTION_LINE_ERR ("初始化配置接口失败");
+		OSFatal ("ftpiiu 插件：初始化配置接口失败");
 	}
 
 	WUPSStorageError err;
@@ -330,7 +330,7 @@ INITIALIZE_PLUGIN ()
 	         FTPIIU_ENABLED_STRING, sFTPServerEnabled, DEFAULT_FTPIIU_ENABLED_VALUE)) !=
 	    WUPS_STORAGE_ERROR_SUCCESS)
 	{
-		DEBUG_FUNCTION_LINE_ERR ("Failed to get or create item \"%s\": %s (%d)\n",
+		DEBUG_FUNCTION_LINE_ERR ("读取或创建存储项「%s」失败: %s (%d)\n",
 		    FTPIIU_ENABLED_STRING,
 		    WUPSStorageAPI_GetStatusStr (err),
 		    err);
@@ -339,7 +339,7 @@ INITIALIZE_PLUGIN ()
 	         sSystemFilesAllowed,
 	         DEFAULT_SYSTEM_FILES_ALLOWED_VALUE)) != WUPS_STORAGE_ERROR_SUCCESS)
 	{
-		DEBUG_FUNCTION_LINE_ERR ("Failed to get or create item \"%s\": %s (%d)\n",
+		DEBUG_FUNCTION_LINE_ERR ("读取或创建存储项「%s」失败: %s (%d)\n",
 		    SYSTEM_FILES_ALLOWED_STRING,
 		    WUPSStorageAPI_GetStatusStr (err),
 		    err);
@@ -348,7 +348,7 @@ INITIALIZE_PLUGIN ()
 	if ((err = WUPSStorageAPI::SaveStorage ()) != WUPS_STORAGE_ERROR_SUCCESS)
 	{
 		DEBUG_FUNCTION_LINE_ERR (
-		    "Failed to save storage: %s (%d)\n", WUPSStorageAPI_GetStatusStr (err), err);
+		    "保存存储失败: %s (%d)\n", WUPSStorageAPI_GetStatusStr (err), err);
 	}
 }
 

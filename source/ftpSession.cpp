@@ -419,7 +419,11 @@ FtpSession::FtpSession (FtpConfig &config_, UniqueSocket commandSocket_)
 
 	m_commandSocket->setNonBlocking ();
 
+#ifdef __WIIU__
+	sendResponse ("220 欢迎使用 ftpiiu。\r\n");
+#else
 	sendResponse ("220 Hello!\r\n");
+#endif
 }
 
 bool FtpSession::dead ()
